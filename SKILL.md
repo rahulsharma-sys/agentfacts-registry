@@ -9,9 +9,9 @@ with immediate effect**: the moment you rotate, the previously-valid signature i
 rejected on the very next resolve.
 
 ## Base URL
-`BASE_URL` (set after deploy, e.g. `https://agentfacts-registry.onrender.com`)
+`https://agentfacts-registry.onrender.com`
 
-Interactive OpenAPI docs live at `BASE_URL/docs`. This SKILL.md is served at `BASE_URL/skill`.
+Interactive OpenAPI docs live at `https://agentfacts-registry.onrender.com/docs`. This SKILL.md is served at `https://agentfacts-registry.onrender.com/skill`.
 
 ## Concepts (read once)
 - Your identity is a **did:key** derived from a stable **controller** keypair. The
@@ -113,7 +113,7 @@ const sign = (privMb, data) => {
 
 ## End-to-end with curl
 ```bash
-BASE=BASE_URL
+BASE=https://agentfacts-registry.onrender.com
 # 1. get keys
 curl -s -X POST $BASE/keys > keys.json
 # 2. build + sign facts (use the Python recipe), then:
