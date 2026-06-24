@@ -1,4 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
+# Free-tier deployable. SQLite lives on the container's ephemeral filesystem,
+# which is fine for a live demo. For durable storage across restarts/redeploys,
+# add a persistent disk (paid plan):
+#   disk:
+#     name: data
+#     mountPath: /app/data
+#     sizeGB: 1
 services:
   - type: web
     name: agentfacts-registry
@@ -8,7 +15,3 @@ services:
     envVars:
       - key: AGENTFACTS_DB
         value: /app/data/agentfacts.db
-    disk:
-      name: data
-      mountPath: /app/data
-      sizeGB: 1
