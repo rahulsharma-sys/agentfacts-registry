@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+services:
+  - type: web
+    name: agentfacts-registry
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: AGENTFACTS_DB
+        value: /app/data/agentfacts.db
+    disk:
+      name: data
+      mountPath: /app/data
+      sizeGB: 1
