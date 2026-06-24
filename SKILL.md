@@ -25,6 +25,8 @@ Interactive OpenAPI docs live at `BASE_URL/docs`. This SKILL.md is served at `BA
 - **Control statements** (register/rotate/revoke) are canonical JSON of
   `{"op": ..., "id": ..., "epoch": ...[, "new_assertion_key": ...]}`, signed by the
   **controller** key.
+- The **`did:key` id is the trust anchor** — verify it, not the `handle`. Handles are
+  advisory display names and are not unique across agents.
 
 ## Quickstart
 1. `POST /keys` → returns a `did:key` `id` plus controller and assertion key pairs.
@@ -91,11 +93,23 @@ controller_sig = sign(controller_priv, canon(stmt))
 import nacl from "tweetnacl";
 import bs58 from "bs58";
 
+// recursively sort object keys so JSON.stringify is canonical (matches the server)
+const sortDeep = (o) =>
+  Array.isArray(o)
+    ? o.map(sortDeep)
+    : o && typeof o === "object"
+      ? Object.keys(o).sort().reduce((acc, k) => ((acc[k] = sortDeep(o[k])), acc), {})
+      : o;
+
 const canon = (o) => Buffer.from(JSON.stringify(sortDeep(o)));      // sorted keys, no spaces
-const sign = (privMb, data) =>
-  "z" + bs58.encode(nacl.sign.detached(data, bs58.decode(privMb.slice(1))));
-// sortDeep: recursively sort object keys so JSON.stringify is canonical
+
+// privMb is the multibase 32-byte Ed25519 seed ("z" + base58)
+const sign = (privMb, data) => {
+  const kp = nacl.sign.keyPair.fromSeed(bs58.decode(privMb.slice(1)));
+  return "z" + bs58.encode(nacl.sign.detached(data, kp.secretKey));
+};
 ```
+(The Python recipe above is the reference; both produce identical signatures for ASCII facts.)
 
 ## End-to-end with curl
 ```bash

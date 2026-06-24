@@ -124,3 +124,44 @@ def test_revoke_then_resolve_unverified_and_unsearchable(conn):
     res = service.resolve(conn, idn["id"])
     assert res.verified is False and res.reason == "revoked"
     assert service.search(conn, capability="weather.forecast") == []
+
+
+def test_register_rejects_unparseable_expires(conn):
+    idn = make_identity()
+    facts = build_signed_facts(idn, expires_at="not-a-date")
+    with pytest.raises(ServiceError) as e:
+        service.register(conn, facts, register_sig(idn, idn["assert_pub"]))
+    assert e.value.reason == "bad_expires_at"
+
+
+def test_register_rejects_non_dict_signature(conn):
+    idn = make_identity()
+    facts = build_signed_facts(idn)
+    facts["signature"] = "not-a-dict"
+    with pytest.raises(ServiceError) as e:
+        service.register(conn, facts, register_sig(idn, idn["assert_pub"]))
+    assert e.value.reason == "bad_signature_shape"
+
+
+def test_resolve_handles_date_only_expires_without_crash(conn):
+    idn = make_identity()
+    facts = build_signed_facts(idn, expires_at="2000-01-01")  # naive, date-only, in the past
+    service.register(conn, facts, register_sig(idn, idn["assert_pub"]))
+    res = service.resolve(conn, idn["id"])
+    assert res.verified is False and res.reason == "expired"
+
+
+def test_rotate_rejects_id_mismatch(conn):
+    idn = _registered(conn)
+    new_priv, new_pub = crypto.generate_keypair()
+    new_facts = build_signed_facts(idn, epoch=2, assert_priv=new_priv, assert_pub=new_pub)
+    new_facts["id"] = "did:key:zImposter"
+    new_facts.pop("signature")
+    new_facts["signature"] = {
+        "alg": "ed25519",
+        "key": new_pub,
+        "value": crypto.sign(new_priv, crypto.signing_payload(new_facts)),
+    }
+    with pytest.raises(ServiceError) as e:
+        service.rotate(conn, idn["id"], new_pub, _rotate_sig(idn, new_pub, 2), new_facts)
+    assert e.value.reason == "id_mismatch"

@@ -24,13 +24,27 @@ def _now_iso() -> str:
 
 
 def _parse_iso(s: str) -> dt.datetime:
-    return dt.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    d = dt.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    return d if d.tzinfo else d.replace(tzinfo=dt.UTC)  # treat naive timestamps as UTC
 
 
 def _require_fields(facts: dict[str, Any]) -> None:
     missing = [k for k in _REQUIRED_FACTS if k not in facts]
     if missing:
         raise ServiceError(f"missing_fields:{','.join(missing)}", 422)
+    sig = facts["signature"]
+    if (
+        not isinstance(sig, dict)
+        or not isinstance(sig.get("key"), str)
+        or not isinstance(sig.get("value"), str)
+    ):
+        raise ServiceError("bad_signature_shape", 422)
+    if type(facts["epoch"]) is not int:
+        raise ServiceError("bad_epoch", 422)
+    try:
+        dt.datetime.fromisoformat(str(facts["expires_at"]).replace("Z", "+00:00"))
+    except (ValueError, TypeError) as exc:
+        raise ServiceError("bad_expires_at", 422) from exc
 
 
 def _verify_facts_signature(facts: dict[str, Any]) -> None:
@@ -155,6 +169,8 @@ def rotate(
         raise ServiceError("revoked", 410)
     next_epoch = rec["epoch"] + 1
     _require_fields(facts)
+    if facts["id"] != agent_id:
+        raise ServiceError("id_mismatch", 400)
     if facts["epoch"] != next_epoch:
         raise ServiceError("epoch_stale", 409)
     controller_pub = rec["controller_key"]
