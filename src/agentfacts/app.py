@@ -46,10 +46,23 @@ def index() -> str:
     return "AgentFacts Registry — see /docs for OpenAPI and /skill for SKILL.md"
 
 
+def _skill_path() -> Path | None:
+    """Locate SKILL.md across layouts: explicit env, container WORKDIR, source tree."""
+    candidates = [
+        os.environ.get("AGENTFACTS_SKILL_PATH"),
+        str(Path.cwd() / "SKILL.md"),  # container: WORKDIR /app holds SKILL.md
+        str(Path(__file__).resolve().parents[2] / "SKILL.md"),  # source/editable layout
+    ]
+    for c in candidates:
+        if c and Path(c).is_file():
+            return Path(c)
+    return None
+
+
 @app.get("/skill", response_class=PlainTextResponse)
 def skill() -> str:
-    path = Path(__file__).resolve().parents[2] / "SKILL.md"
-    return path.read_text(encoding="utf-8") if path.exists() else "SKILL.md not found"
+    path = _skill_path()
+    return path.read_text(encoding="utf-8") if path else "SKILL.md not found"
 
 
 @app.post("/keys", response_model=KeySet)

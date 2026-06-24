@@ -104,3 +104,12 @@ def test_verify_endpoint(client):
     idn = make_identity()
     facts = build_signed_facts(idn)
     assert client.post("/verify", json=facts).json() == {"verified": True, "reason": "ok"}
+
+
+def test_skill_served_from_env_path(client, tmp_path, monkeypatch):
+    skill_file = tmp_path / "SKILL.md"
+    skill_file.write_text("# AgentFacts Registry\nlive skill content", encoding="utf-8")
+    monkeypatch.setenv("AGENTFACTS_SKILL_PATH", str(skill_file))
+    r = client.get("/skill")
+    assert r.status_code == 200
+    assert "live skill content" in r.text
