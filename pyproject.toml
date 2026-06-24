@@ -32,5 +32,6 @@ src = ["src", "tests"]
 select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = [".", "src"]
 testpaths = ["tests"]
+addopts = ["--import-mode=importlib"]
