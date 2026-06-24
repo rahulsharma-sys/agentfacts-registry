@@ -15,3 +15,7 @@ services:
     envVars:
       - key: AGENTFACTS_DB
         value: /app/data/agentfacts.db
+      - key: AGENTFACTS_SKILL_PATH
+        value: /app/SKILL.md
+      - key: AGENTFACTS_SEED
+        value: "1"

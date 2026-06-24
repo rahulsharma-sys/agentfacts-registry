@@ -5,20 +5,38 @@ from __future__ import annotations
 
 import os
 import sqlite3
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
 from fastapi import Body, Depends, FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 
-from agentfacts import crypto, service, store
+from agentfacts import crypto, seed, service, store
 from agentfacts.errors import ServiceError
 from agentfacts.models import KeySet, RegisterBody, RevokeBody, RotateBody
 
-app = FastAPI(title="AgentFacts Registry", version="0.1.0")
-
 _DB_PATH = os.environ.get("AGENTFACTS_DB", "agentfacts.db")
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    # Seed a stable sample agent on startup so discovery is non-empty on a fresh
+    # (cold-started, ephemeral) instance. Gated on AGENTFACTS_SEED so it never runs
+    # during tests; set in the deployed container.
+    if os.environ.get("AGENTFACTS_SEED"):
+        conn = sqlite3.connect(_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        store.init_db(conn)
+        try:
+            seed.seed_sample_agent(conn)
+        finally:
+            conn.close()
+    yield
+
+
+app = FastAPI(title="AgentFacts Registry", version="0.1.0", lifespan=_lifespan)
 _GITHUB = "https://github.com/rahulsharma-sys/agentfacts-registry"
 _FAVICON = (
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E"
