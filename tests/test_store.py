@@ -66,7 +66,9 @@ def test_revoke_hides_from_search(conn):
 def test_update_rotation(conn):
     rec, caps = _rec()
     store.insert_agent(conn, rec, caps)
-    store.update_rotation(conn, "did:key:zA", "zNEWASSERT", 2, '{"epoch":2}', "2026-06-24T01:00:00Z")  # noqa: E501
+    store.update_rotation(
+        conn, "did:key:zA", "zNEWASSERT", 2, '{"epoch":2}', "2026-06-24T01:00:00Z"
+    )  # noqa: E501
     got = store.get_agent(conn, "did:key:zA")
     assert got["assertion_key"] == "zNEWASSERT"
     assert got["epoch"] == 2
