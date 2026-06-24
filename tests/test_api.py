@@ -113,3 +113,11 @@ def test_skill_served_from_env_path(client, tmp_path, monkeypatch):
     r = client.get("/skill")
     assert r.status_code == 200
     assert "live skill content" in r.text
+
+
+def test_index_is_html_landing_with_links(client):
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+    assert "/docs" in r.text and "/skill" in r.text
+    assert "AgentFacts Registry" in r.text

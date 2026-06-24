@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import Body, Depends, FastAPI
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 
 from agentfacts import crypto, service, store
 from agentfacts.errors import ServiceError
@@ -19,6 +19,55 @@ from agentfacts.models import KeySet, RegisterBody, RevokeBody, RotateBody
 app = FastAPI(title="AgentFacts Registry", version="0.1.0")
 
 _DB_PATH = os.environ.get("AGENTFACTS_DB", "agentfacts.db")
+_GITHUB = "https://github.com/rahulsharma-sys/agentfacts-registry"
+_FAVICON = (
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E"
+    "%3Ccircle cx='16' cy='16' r='13' fill='%236d5cff'/%3E"
+    "%3Ccircle cx='16' cy='16' r='5' fill='white'/%3E%3C/svg%3E"
+)
+_LANDING_HTML = f"""<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentFacts Registry</title>
+<link rel="icon" href="{_FAVICON}">
+<style>
+  :root{{color-scheme:dark}} *{{box-sizing:border-box}}
+  body{{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+    background:#0c0d12;color:#e7e7ea;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;padding:2rem}}
+  .wrap{{max-width:640px;width:100%}}
+  .badge{{display:inline-block;font:600 12px/1 ui-monospace,monospace;color:#a99cff;
+    border:1px solid #2a2b38;border-radius:999px;padding:6px 12px;margin-bottom:20px}}
+  h1{{font-size:2.2rem;margin:0 0 .5rem;letter-spacing:-.02em}}
+  p.lead{{color:#a7a8b3;line-height:1.6;margin:0 0 1.75rem}}
+  .grid{{display:grid;gap:12px;grid-template-columns:1fr 1fr}}
+  a.card{{display:block;text-decoration:none;color:inherit;background:#14151d;
+    border:1px solid #23242f;border-radius:12px;padding:16px 18px;
+    transition:border-color .15s,transform .15s}}
+  a.card:hover{{border-color:#6d5cff;transform:translateY(-1px)}}
+  a.card .t{{font-weight:600;margin-bottom:4px}} a.card .d{{font-size:13px;color:#9092a0}}
+  .full{{grid-column:1/-1}}
+  code{{font-family:ui-monospace,monospace;color:#c9c2ff;background:#1a1b24;
+    padding:1px 6px;border-radius:6px}}
+  .foot{{margin-top:1.75rem;font-size:13px;color:#75767f;line-height:1.7}}
+</style></head><body><div class="wrap">
+  <span class="badge">NANDA · Internet of Agents</span>
+  <h1>AgentFacts Registry</h1>
+  <p class="lead">A verifiable agent identity &amp; discovery service. Agents register a
+    cryptographically signed <strong>AgentFacts</strong> document, discover each other by
+    capability, resolve, and verify — with key <strong>rotation and revocation that take
+    effect immediately</strong>, the thing DNS can't do.</p>
+  <div class="grid">
+    <a class="card" href="/docs"><div class="t">API Docs →</div>
+      <div class="d">Interactive OpenAPI — try every endpoint</div></a>
+    <a class="card" href="/skill"><div class="t">Agent Guide →</div>
+      <div class="d">SKILL.md — how an agent uses this service</div></a>
+    <a class="card full" href="{_GITHUB}"><div class="t">Source on GitHub →</div>
+      <div class="d">FastAPI · SQLite · Ed25519 · Apache-2.0</div></a>
+  </div>
+  <p class="foot">Quickstart: <code>POST /keys</code> → sign your facts →
+    <code>POST /agents</code> → <code>GET /agents?capability=…</code> →
+    <code>GET /agents/{{id}}</code>. Health: <code>/healthz</code>.</p>
+</div></body></html>"""
 
 
 def get_conn() -> Iterator[sqlite3.Connection]:
@@ -41,9 +90,9 @@ def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/", response_class=PlainTextResponse)
+@app.get("/", response_class=HTMLResponse)
 def index() -> str:
-    return "AgentFacts Registry — see /docs for OpenAPI and /skill for SKILL.md"
+    return _LANDING_HTML
 
 
 def _skill_path() -> Path | None:
